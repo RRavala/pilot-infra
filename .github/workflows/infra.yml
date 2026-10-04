@@ -12,6 +12,14 @@ on:
         description: "Your public IP as a /32 (blank = use repo variable ALLOWED_CIDR)"
         type: string
         required: false
+      instance_class:
+        description: "DB instance class (try db.t3.micro if db.t4g.micro has no capacity)"
+        type: string
+        default: db.t4g.micro
+      availability_zone:
+        description: "Optional AZ such as us-east-1a (blank = let RDS choose)"
+        type: string
+        required: false
       confirm:
         description: "For destroy only: type the DB identifier (pilot-test-pg) to confirm"
         type: string
@@ -32,6 +40,8 @@ concurrency:
 env:
   ACTION: ${{ github.event_name == 'schedule' && 'destroy' || inputs.action }}
   TF_VAR_allowed_cidr: ${{ inputs.allowed_cidr || vars.ALLOWED_CIDR || '0.0.0.0/32' }}
+  TF_VAR_instance_class: ${{ inputs.instance_class || 'db.t4g.micro' }}
+  TF_VAR_availability_zone: ${{ inputs.availability_zone || '' }}
   TF_IN_AUTOMATION: "true"
 
 jobs:
@@ -46,7 +56,8 @@ jobs:
         working-directory: terraform
 
     steps:
-      - uses: actions/checkout@v4    
+      - uses: actions/checkout@v4
+
       - name: Guard destroy
         if: github.event_name == 'workflow_dispatch' && inputs.action == 'destroy'
         run: |
