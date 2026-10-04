@@ -14,6 +14,9 @@ data "aws_subnets" "default" {
 
 locals {
   restoring = var.snapshot_identifier != null
+
+  # The workflow passes an empty string when the AZ input is left blank.
+  az = (var.availability_zone == null || var.availability_zone == "") ? null : var.availability_zone
 }
 
 resource "aws_db_subnet_group" "pilot" {
@@ -42,7 +45,7 @@ resource "aws_db_instance" "pilot" {
   engine            = "postgres"
   engine_version    = var.engine_version
   instance_class    = var.instance_class
-  availability_zone = var.availability_zone
+  availability_zone = local.az
 
   allocated_storage = var.allocated_storage
   storage_type      = var.storage_type
