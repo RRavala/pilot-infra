@@ -48,6 +48,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Show OIDC subject (debug, remove later)
+        continue-on-error: true
+        run: |
+          curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" \
+            | python3 -c 'import sys,json,base64; t=json.load(sys.stdin)["value"].split(".")[1]; t+="="*(-len(t)%4); c=json.loads(base64.urlsafe_b64decode(t)); print("sub:", c["sub"]); print("aud:", c["aud"])'
+
       - name: Guard destroy
         if: github.event_name == 'workflow_dispatch' && inputs.action == 'destroy'
         run: |
