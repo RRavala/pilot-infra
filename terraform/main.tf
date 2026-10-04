@@ -45,7 +45,7 @@ resource "aws_db_instance" "pilot" {
   availability_zone = var.availability_zone
 
   allocated_storage = var.allocated_storage
-  storage_type      = "gp2"
+  storage_type      = var.storage_type
   storage_encrypted = true # default aws/rds key, so no customer KMS key to manage
 
   # Fresh instance: RDS creates and stores the master password in Secrets Manager.

@@ -29,9 +29,20 @@ variable "allocated_storage" {
 }
 
 variable "availability_zone" {
-  description = "AZ for the instance."
+  description = "AZ for the instance. Leave null to let RDS pick one with capacity (pinning an AZ can fail with InsufficientDBInstanceCapacity)."
   type        = string
-  default     = "us-east-1b"
+  default     = null
+}
+
+variable "storage_type" {
+  description = "gp3 or gp2. gp3 is the current default and often has capacity when gp2 does not."
+  type        = string
+  default     = "gp3"
+
+  validation {
+    condition     = contains(["gp2", "gp3"], var.storage_type)
+    error_message = "storage_type must be gp2 or gp3."
+  }
 }
 
 variable "db_name" {
