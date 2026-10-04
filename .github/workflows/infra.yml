@@ -46,6 +46,8 @@ jobs:
         working-directory: terraform
 
     steps:
+      - uses: actions/checkout@v4
+
       - name: Guard destroy
         if: github.event_name == 'workflow_dispatch' && inputs.action == 'destroy'
         run: |
@@ -61,8 +63,6 @@ jobs:
             echo "::error::Provide allowed_cidr (your IP as x.x.x.x/32) as an input or set the ALLOWED_CIDR repo variable."
             exit 1
           fi
-
-      - uses: actions/checkout@v4
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
