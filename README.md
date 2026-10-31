@@ -9,9 +9,9 @@ It uses the account's **default VPC** and the default `aws/rds` KMS key, so ther
 1. Create a GitHub repo (for example `rravala/pilot-infra`) and push this folder to it.
 2. In AWS CloudShell (or any shell with admin credentials for your account):
    ```
-   bash bootstrap/bootstrap.sh rravala/pilot-infra
+   bash bootstrap/bootstrap.sh RRavala/pilot-infra RRavala/flyway-postgres-demo
    ```
-   This creates the state bucket, the GitHub OIDC provider, and a deploy role. It is safe to re-run.
+   List every repo that should be able to use the role (the second one deploys database changes with Flyway). Use the exact capitalization GitHub shows. This creates the state bucket, the GitHub OIDC provider, and a deploy role. It is safe to re-run.
 3. Add the repo variables the script prints (`AWS_ROLE_ARN`, `TF_STATE_BUCKET`, optionally `ALLOWED_CIDR` and `NIGHTLY_DESTROY`).
 4. Create two environments in GitHub (Settings > Environments): `deploy` and `destroy`. Required reviewers on `destroy` are optional. Note that on private repos, environment protection rules need a paid GitHub plan. The `confirm` input on destroy works either way.
 

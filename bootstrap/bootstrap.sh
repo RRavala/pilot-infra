@@ -3,10 +3,14 @@
 # Creates: the Terraform state bucket, the GitHub OIDC provider, and the IAM role
 # that the GitHub Actions workflow assumes. None of this is destroyed by the workflow.
 #
-# Usage: ./bootstrap.sh <github-owner>/<repo>      e.g. ./bootstrap.sh rravala/pilot-infra
+# Usage: ./bootstrap.sh <owner>/<repo> [<owner>/<other-repo> ...]
+#        e.g. ./bootstrap.sh RRavala/pilot-infra RRavala/flyway-postgres-demo
+# Every repo listed may assume the role. Use the exact capitalization GitHub shows.
 set -euo pipefail
 
-REPO="${1:?Usage: $0 <github-owner>/<repo>}"
+[ $# -ge 1 ] || { echo "Usage: $0 <owner>/<repo> [<owner>/<repo> ...]" >&2; exit 1; }
+REPOS=("$@")
+REPO="${REPOS[0]}"
 REGION="${AWS_REGION:-us-east-1}"
 ROLE_NAME="pilot-infra-github-actions"
 
@@ -15,7 +19,7 @@ BUCKET="pilot-infra-tfstate-${ACCOUNT_ID}"
 OIDC_URL="token.actions.githubusercontent.com"
 OIDC_ARN="arn:aws:iam::${ACCOUNT_ID}:oidc-provider/${OIDC_URL}"
 
-echo "Account: ${ACCOUNT_ID}  Region: ${REGION}  Repo: ${REPO}"
+echo "Account: ${ACCOUNT_ID}  Region: ${REGION}  Repos: ${REPOS[*]}"
 
 # 1. State bucket --------------------------------------------------------------
 if aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
@@ -50,6 +54,14 @@ else
 fi
 
 # 3. Deploy role ---------------------------------------------------------------
+# GitHub may emit the OIDC subject as repo:Owner/Name:... or, with immutable IDs,
+# repo:Owner@<id>/Name@<id>:... so allow both forms for each repo.
+SUBS=""
+for r in "${REPOS[@]}"; do
+  owner="${r%%/*}"; name="${r#*/}"
+  SUBS="${SUBS:+$SUBS, }\"repo:${owner}/${name}:*\", \"repo:${owner}@*/${name}@*:*\""
+done
+
 TRUST="$(cat <<EOF
 {
   "Version": "2012-10-17",
@@ -59,7 +71,7 @@ TRUST="$(cat <<EOF
     "Action": "sts:AssumeRoleWithWebIdentity",
     "Condition": {
       "StringEquals": {"${OIDC_URL}:aud": "sts.amazonaws.com"},
-      "StringLike":   {"${OIDC_URL}:sub": "repo:${REPO}:*"}
+      "StringLike":   {"${OIDC_URL}:sub": [${SUBS}]}
     }
   }]
 }
@@ -106,7 +118,7 @@ ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/${ROLE_NAME}"
 
 cat <<EOF
 
-Done. In GitHub: ${REPO} > Settings > Secrets and variables > Actions > Variables, add:
+Done. In GitHub (each repo that will use the role, e.g. ${REPO}) > Settings > Secrets and variables > Actions > Variables, add:
 
   AWS_ROLE_ARN     = ${ROLE_ARN}
   TF_STATE_BUCKET  = ${BUCKET}
