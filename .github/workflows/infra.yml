@@ -73,6 +73,13 @@ jobs:
             echo "::error::Provide allowed_cidr (your IP as x.x.x.x/32) as an input or set the ALLOWED_CIDR repo variable."
             exit 1
           fi
+      - name: Debug OIDC claims
+        run: |
+          TOKEN=$(curl -sS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r .value)
+          echo "$TOKEN" | cut -d. -f2 | tr '_-' '/+' \
+            | awk '{while(length($0)%4)$0=$0"="; print}' \
+            | base64 -d | jq '{iss, aud, sub, repository, environment}'
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
